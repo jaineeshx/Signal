@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SIGNAL — Smart Intelligent Guide for Navigation and Live-operations. GenAI-powered stadium assistant for FIFA World Cup 2026 fans, staff, volunteers, and organizers." />
+  <meta name="theme-color" content="#0a1628" />
+  <meta property="og:title" content="SIGNAL — FIFA World Cup 2026 AI Assistant" />
+  <meta property="og:description" content="Your GenAI-powered stadium companion for FIFA World Cup 2026." />
+
+  <title>SIGNAL | FIFA World Cup 2026 AI Assistant</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <header class="header" role="banner">
+      <div class="header-brand">
+        <div class="logo-mark" aria-hidden="true">⚡</div>
+        <div>
+          <div class="brand-name">SIGNAL</div>
+          <div class="brand-sub">FIFA World Cup 2026</div>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Gemini Status -->
+        <div id="gemini-badge" class="gemini-badge mock" role="status" aria-live="polite">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="badge-text">Mock Mode</span>
+        </div>
+
+        <!-- Language Selector -->
+        <div class="control-group" role="group" aria-label="Language selection">
+          <span class="control-label" aria-hidden="true">🌐</span>
+          <label for="lang-select" class="sr-only">Select language</label>
+          <select id="lang-select" aria-label="Select language">
+            <option value="en">🇬🇧 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="ar">🇸🇦 العربية</option>
+            <option value="pt">🇧🇷 Português</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="ko">🇰🇷 한국어</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Tab Navigation ─────────────────────────────────── -->
+    <nav class="tab-nav" role="tablist" aria-label="Main navigation">
+      <button class="tab-btn active" data-tab="chat"
+              role="tab" aria-selected="true" aria-controls="panel-chat" id="tab-chat">
+        <span class="tab-icon" aria-hidden="true">💬</span>
+        <span class="tab-label">AI Assistant</span>
+      </button>
+      <button class="tab-btn" data-tab="crowd"
+              role="tab" aria-selected="false" aria-controls="panel-crowd" id="tab-crowd">
+        <span class="tab-icon" aria-hidden="true">📊</span>
+        <span class="tab-label">Crowd Monitor</span>
+      </button>
+      <button class="tab-btn" data-tab="navigate"
+              role="tab" aria-selected="false" aria-controls="panel-navigate" id="tab-navigate">
+        <span class="tab-icon" aria-hidden="true">🗺️</span>
+        <span class="tab-label">Navigate</span>
+      </button>
+      <button class="tab-btn" data-tab="settings"
+              role="tab" aria-selected="false" aria-controls="panel-settings" id="tab-settings">
+        <span class="tab-icon" aria-hidden="true">⚙️</span>
+        <span class="tab-label">Settings</span>
+      </button>
+    </nav>
+
+    <!-- ── Main Content ──────────────────────────────────── -->
+    <main class="main-content" role="main">
+
+      <!-- ════ CHAT TAB ════ -->
+      <div id="panel-chat" class="tab-panel active"
+           role="tabpanel" aria-labelledby="tab-chat">
+
+        <!-- Persona Sidebar -->
+        <aside class="chat-sidebar" aria-label="Persona and quick actions">
+          <span class="sidebar-label">Choose Your Role</span>
+
+          <button class="persona-btn active" data-persona="fan"
+                  role="radio" aria-pressed="true" aria-label="Fan persona">
+            <span class="p-icon" aria-hidden="true">⚽</span>
+            <div>
+              <div class="p-name">Fan</div>
+              <div class="p-desc">Match-day help</div>
+            </div>
+          </button>
+
+          <button class="persona-btn" data-persona="staff"
+                  role="radio" aria-pressed="false" aria-label="Venue Staff persona">
+            <span class="p-icon" aria-hidden="true">🦺</span>
+            <div>
+              <div class="p-name">Venue Staff</div>
+              <div class="p-desc">Operations</div>
+            </div>
+          </button>
+
+          <button class="persona-btn" data-persona="volunteer"
+                  role="radio" aria-pressed="false" aria-label="Volunteer persona">
+            <span class="p-icon" aria-hidden="true">🤝</span>
+            <div>
+              <div class="p-name">Volunteer</div>
+              <div class="p-desc">Task support</div>
+            </div>
+          </button>
+
+          <button class="persona-btn" data-persona="organizer"
+                  role="radio" aria-pressed="false" aria-label="Organizer persona">
+            <span class="p-icon" aria-hidden="true">📊</span>
+            <div>
+              <div class="p-name">Organizer</div>
+              <div class="p-desc">Analytics</div>
+            </div>
+          </button>
+
+          <span class="sidebar-label" style="margin-top:16px;">Quick Actions</span>
+          <div id="quick-actions-list" class="quick-actions-list"
+               role="group" aria-label="Quick action prompts">
+          </div>
+        </aside>
+
+        <!-- Chat Panel -->
+        <div class="chat-main">
+          <!-- Messages area -->
+          <div id="chat-messages" class="chat-messages"
+               role="list" aria-label="Conversation messages" aria-live="polite">
+
+            <!-- Empty state -->
+            <div id="chat-empty-state" class="empty-chat">
+              <div class="empty-icon" aria-hidden="true">⚡</div>
+              <h3>Welcome to SIGNAL</h3>
+              <p>Your AI-powered stadium companion for FIFA World Cup 2026. Select a role on the left and ask me anything!</p>
+            </div>
+          </div>
+
+          <!-- Typing indicator -->
+          <div id="typing-indicator" class="typing-indicator"
+               role="status" aria-live="polite" aria-label="SIGNAL is generating a response">
+            <div class="msg-avatar" aria-hidden="true">🤖</div>
+            <div class="typing-dots" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+
+          <!-- Input area -->
+          <div class="chat-input-area">
+            <div class="chat-input-row">
+              <label for="chat-textarea" class="sr-only">Message SIGNAL</label>
+              <textarea
+                id="chat-textarea"
+                class="chat-textarea"
+                placeholder="Ask anything about the stadium…"
+                rows="1"
+                maxlength="1000"
+                aria-label="Type your message"
+                aria-multiline="true"
+              ></textarea>
+              <button id="chat-send-btn" class="send-btn"
+                      aria-label="Send message"
+                      title="Send (Enter)">
+                ➤
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ CROWD MONITOR TAB ════ -->
+      <div id="panel-crowd" class="tab-panel"
+           role="tabpanel" aria-labelledby="tab-crowd">
+
+        <!-- Header -->
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon" aria-hidden="true">📊</span>
+            <div>
+              <h2>Live Crowd Monitor</h2>
+              <p id="crowd-last-updated" aria-live="polite">Loading…</p>
+            </div>
+          </div>
+          <div class="crowd-controls">
+            <button id="crowd-refresh-btn" class="btn btn-secondary btn-sm" aria-label="Refresh crowd data">
+              🔄 Refresh
+            </button>
+            <label class="toggle-row" style="padding:6px 12px;cursor:pointer;">
+              <span style="font-size:0.8rem;color:var(--text-secondary);">Auto-refresh</span>
+              <label class="toggle" aria-label="Enable auto-refresh">
+                <input type="checkbox" id="auto-refresh-toggle" />
+                <span class="toggle-slider"></span>
+              </label>
+            </label>
+          </div>
+        </div>
+
+        <!-- Summary stats -->
+        <div id="crowd-stats" class="crowd-summary" aria-live="polite">
+          <!-- Rendered by crowd.js -->
+        </div>
+
+        <!-- Zone grid -->
+        <section aria-label="Stadium zone crowd data">
+          <div id="crowd-zone-grid" class="crowd-grid" role="list">
+            <!-- 8 zone cards rendered by crowd.js -->
+            <p style="color:var(--text-muted);grid-column:1/-1;">⏳ Loading zone data…</p>
+          </div>
+        </section>
+
+        <!-- AI Advisory Panel -->
+        <section class="advisory-panel" aria-label="AI-generated crowd advisory">
+          <div class="advisory-title">
+            <span aria-hidden="true">🤖</span>
+            Gemini AI Advisory
+          </div>
+          <div id="advisory-text" class="advisory-text" aria-live="polite">
+            Click "Get AI Advisory" to generate an operational advisory.
+          </div>
+          <div id="advisory-meta" class="advisory-meta" style="display:none;"></div>
+          <div style="margin-top:14px;">
+            <button id="advisory-btn" class="btn btn-primary btn-sm" aria-label="Generate AI crowd advisory">
+              ✨ Get AI Advisory
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ════ NAVIGATE TAB ════ -->
+      <div id="panel-navigate" class="tab-panel"
+           role="tabpanel" aria-labelledby="tab-navigate">
+
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon" aria-hidden="true">🗺️</span>
+            <div>
+              <h2>Stadium Navigation</h2>
+              <p>AI-powered step-by-step directions inside the venue</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-layout">
+          <!-- Navigation Form -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Plan Your Route</span>
+            </div>
+            <div class="card-body nav-form">
+
+              <div class="form-group">
+                <label class="form-label" for="from-input">From</label>
+                <input
+                  type="text"
+                  id="from-input"
+                  class="form-input"
+                  placeholder="e.g. Gate A, Parking P1"
+                  list="from-datalist"
+                  autocomplete="off"
+                  aria-label="Starting location"
+                />
+                <datalist id="from-datalist"></datalist>
+                <span class="datalist-hint">Type or select a stadium location</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="to-input">To</label>
+                <input
+                  type="text"
+                  id="to-input"
+                  class="form-input"
+                  placeholder="e.g. Section 110, Food Court 2"
+                  list="to-datalist"
+                  autocomplete="off"
+                  aria-label="Destination"
+                />
+                <datalist id="to-datalist"></datalist>
+              </div>
+
+              <!-- Accessibility Toggle -->
+              <div class="toggle-row">
+                <div>
+                  <div class="toggle-label-text">♿ Accessibility Mode</div>
+                  <div class="toggle-label-sub">Wheelchair-accessible routes only</div>
+                </div>
+                <label class="toggle" aria-label="Enable wheelchair accessible route">
+                  <input type="checkbox" id="accessibility-toggle" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <button id="directions-btn" class="btn btn-primary" aria-label="Get navigation directions">
+                🗺️ Get Directions
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Column: Directions + Map -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+
+            <!-- Directions output -->
+            <div id="directions-card" class="card directions-card">
+              <div class="card-header">
+                <span class="card-title">Directions</span>
+                <span id="directions-mock" style="font-size:0.7rem;color:var(--text-muted);display:none;"></span>
+              </div>
+              <div class="card-body">
+                <div class="directions-placeholder" id="nav-placeholder">
+                  <div class="icon">🗺️</div>
+                  <p>Enter a start and destination above, then click "Get Directions" to receive AI-powered step-by-step walking directions.</p>
+                </div>
+                <div id="directions-content" class="directions-content" style="display:none;"></div>
+              </div>
+            </div>
+
+            <!-- Stadium map -->
+            <div class="card stadium-map" aria-label="Stadium schematic map">
+              <div class="card-header">
+                <span class="card-title">Stadium Layout</span>
+              </div>
+              <div class="card-body" style="padding:12px;">
+                <div id="stadium-map"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ SETTINGS TAB ════ -->
+      <div id="panel-settings" class="tab-panel"
+           role="tabpanel" aria-labelledby="tab-settings">
+
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon" aria-hidden="true">⚙️</span>
+            <div>
+              <h2>Settings</h2>
+              <p>Customise your SIGNAL experience</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Default Language -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-name">🌐 Default Language</div>
+              <div class="setting-desc">AI responses will be in this language</div>
+            </div>
+            <div class="setting-value">
+              <select aria-label="Default language setting"
+                      onchange="document.getElementById('lang-select').value=this.value;window.SIGNAL_STATE.language=this.value;">
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="ar">العربية</option>
+                <option value="pt">Português</option>
+                <option value="de">Deutsch</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Default Persona -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-name">👤 Default Role</div>
+              <div class="setting-desc">Pre-selects your persona on load</div>
+            </div>
+            <div class="setting-value">
+              <select aria-label="Default persona setting"
+                      onchange="window.Chat?.switchPersona(this.value)">
+                <option value="fan">Fan</option>
+                <option value="staff">Venue Staff</option>
+                <option value="volunteer">Volunteer</option>
+                <option value="organizer">Organizer</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="card about-card" style="margin-top:8px;">
+          <div class="card-body">
+            <h3>About SIGNAL</h3>
+            <p style="font-size:0.875rem;margin-top:6px;">
+              <strong>S</strong>mart <strong>I</strong>ntelligent <strong>G</strong>uide for
+              <strong> N</strong>avigation <strong>A</strong>nd <strong>L</strong>ive-operations.
+              A GenAI-powered multi-role stadium assistant for FIFA World Cup 2026,
+              built on Google Gemini.
+            </p>
+
+            <div class="feature-list">
+              <div class="feature-item">
+                <span class="feat-icon" aria-hidden="true">🤖</span>
+                <span>Google Gemini 1.5 Flash — persona-aware responses for Fan, Staff, Volunteer, Organizer</span>
+              </div>
+              <div class="feature-item">
+                <span class="feat-icon" aria-hidden="true">🌐</span>
+                <span>8-language multilingual support with automatic RTL for Arabic</span>
+              </div>
+              <div class="feature-item">
+                <span class="feat-icon" aria-hidden="true">📊</span>
+                <span>Real-time crowd density monitoring across 8 stadium zones</span>
+              </div>
+              <div class="feature-item">
+                <span class="feat-icon" aria-hidden="true">🗺️</span>
+                <span>AI-powered step-by-step navigation with accessibility routing</span>
+              </div>
+              <div class="feature-item">
+                <span class="feat-icon" aria-hidden="true">🚨</span>
+                <span>Gemini-generated operational crowd advisories for venue staff</span>
+              </div>
+              <div class="feature-item">
+                <span class="feat-icon" aria-hidden="true">♿</span>
+                <span>Full ARIA support, keyboard navigation, high-contrast mode</span>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-card);">
+              <p style="font-size:0.78rem;color:var(--text-muted);">
+                v1.0.0 · Built with FastAPI + Google Gemini · FIFA World Cup 2026 Hackathon
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- Screen-reader only utility class -->
+  <style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}</style>
+
+  <!-- JS Modules (load order matters) -->
+  <script src="/js/i18n.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/crowd.js"></script>
+  <script src="/js/nav.js"></script>
+
+  <!-- Fix directions placeholder toggle -->
+  <script>
+    // Show/hide directions placeholder vs content
+    const origGetDirections = window.NavTab;
+    document.addEventListener('DOMContentLoaded', () => {
+      const dirContent = document.getElementById('directions-content');
+      const placeholder = document.getElementById('nav-placeholder');
+      const dirBtn = document.getElementById('directions-btn');
+      if (dirBtn && dirContent && placeholder) {
+        dirBtn.addEventListener('click', () => {
+          placeholder.style.display = 'none';
+          dirContent.style.display = 'block';
+        });
+      }
+    });
+  </script>
+</body>
+</html>
