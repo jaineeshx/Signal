@@ -12,7 +12,7 @@ import math
 import random
 import time
 
-from app.core.config import settings
+
 from app.models.crowd import CrowdStatusResponse, DensityStatus, ZoneData
 
 # ── Type alias ─────────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ static frontend, and sets up startup/shutdown logging.
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 import os
 
 from fastapi import FastAPI
@@ -20,6 +21,21 @@ from app.utils.logger import get_logger
 log_level = logging.DEBUG if settings.debug else logging.INFO
 logger = get_logger(__name__, level=log_level)
 
+# ── Lifecycle events ───────────────────────────────────────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    gemini_status = "LIVE" if settings.gemini_available else "MOCK"
+    logger.info(
+        "SIGNAL %s v%s started | Gemini: %s | Model: %s",
+        settings.app_name,
+        settings.app_version,
+        gemini_status,
+        settings.gemini_model,
+    )
+    yield
+    logger.info("SIGNAL shutting down.")
+
 # ── Application ────────────────────────────────────────────────────────────────
 app = FastAPI(
     title=settings.app_name,
@@ -30,6 +46,7 @@ app = FastAPI(
     ),
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
@@ -63,19 +80,4 @@ else:
     )
 
 
-# ── Lifecycle events ───────────────────────────────────────────────────────────
-@app.on_event("startup")
-async def on_startup() -> None:
-    gemini_status = "LIVE" if settings.gemini_available else "MOCK"
-    logger.info(
-        "SIGNAL %s v%s started | Gemini: %s | Model: %s",
-        settings.app_name,
-        settings.app_version,
-        gemini_status,
-        settings.gemini_model,
-    )
 
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    logger.info("SIGNAL shutting down.")

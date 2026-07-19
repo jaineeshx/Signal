@@ -196,13 +196,13 @@
             <button id="crowd-refresh-btn" class="btn btn-secondary btn-sm" aria-label="Refresh crowd data">
               🔄 Refresh
             </button>
-            <label class="toggle-row" style="padding:6px 12px;cursor:pointer;">
-              <span style="font-size:0.8rem;color:var(--text-secondary);">Auto-refresh</span>
-              <label class="toggle" aria-label="Enable auto-refresh">
-                <input type="checkbox" id="auto-refresh-toggle" />
+            <div class="toggle-row" style="padding:6px 12px;cursor:pointer;">
+              <span style="font-size:0.8rem;color:var(--text-secondary);" id="auto-refresh-label">Auto-refresh</span>
+              <label class="toggle">
+                <input type="checkbox" id="auto-refresh-toggle" aria-labelledby="auto-refresh-label" />
                 <span class="toggle-slider"></span>
               </label>
-            </label>
+            </div>
           </div>
         </div>
 
@@ -291,11 +291,11 @@
               <!-- Accessibility Toggle -->
               <div class="toggle-row">
                 <div>
-                  <div class="toggle-label-text">♿ Accessibility Mode</div>
+                  <div class="toggle-label-text" id="accessibility-label">♿ Accessibility Mode</div>
                   <div class="toggle-label-sub">Wheelchair-accessible routes only</div>
                 </div>
-                <label class="toggle" aria-label="Enable wheelchair accessible route">
-                  <input type="checkbox" id="accessibility-toggle" />
+                <label class="toggle">
+                  <input type="checkbox" id="accessibility-toggle" aria-labelledby="accessibility-label" />
                   <span class="toggle-slider"></span>
                 </label>
               </div>
@@ -359,7 +359,7 @@
               <div class="setting-desc">AI responses will be in this language</div>
             </div>
             <div class="setting-value">
-              <select aria-label="Default language setting"
+              <select id="default-lang-select" aria-label="Default language setting"
                       onchange="document.getElementById('lang-select').value=this.value;window.SIGNAL_STATE.language=this.value;">
                 <option value="en">English</option>
                 <option value="es">Español</option>
@@ -380,7 +380,7 @@
               <div class="setting-desc">Pre-selects your persona on load</div>
             </div>
             <div class="setting-value">
-              <select aria-label="Default persona setting"
+              <select id="default-persona-select" aria-label="Default persona setting"
                       onchange="window.Chat?.switchPersona(this.value)">
                 <option value="fan">Fan</option>
                 <option value="staff">Venue Staff</option>
