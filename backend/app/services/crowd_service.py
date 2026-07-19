@@ -11,26 +11,30 @@ from __future__ import annotations
 import math
 import random
 import time
-from typing import Dict
 
 from app.core.config import settings
 from app.models.crowd import CrowdStatusResponse, DensityStatus, ZoneData
 
+# ── Type alias ─────────────────────────────────────────────────────────────────
+# (display_name, base_density_pct, zone_capacity)
+ZoneSpec = tuple[str, int, int]
+
 # ── Zone definitions ───────────────────────────────────────────────────────────
-# zone_key: (display_name, base_density %, zone_capacity)
-_ZONES: Dict[str, tuple[str, int, int]] = {
-    "north_stand":   ("North Stand (Gate A)",    72, 17_500),
-    "south_stand":   ("South Stand (Gate B)",    65, 17_500),
-    "east_stand":    ("East Stand (Gate C)",     58, 12_000),
-    "west_stand":    ("West Stand (Gate D)",     60, 12_000),
-    "vip_section":   ("VIP Section",             45,  3_000),
-    "food_court_n":  ("Food Court North",        80,  2_500),
-    "food_court_s":  ("Food Court South",        74,  2_500),
-    "main_concourse":("Main Concourse",          68,  5_000),
+_ZONES: dict[str, ZoneSpec] = {
+    "north_stand":    ("North Stand (Gate A)",  72, 17_500),
+    "south_stand":    ("South Stand (Gate B)",  65, 17_500),
+    "east_stand":     ("East Stand (Gate C)",   58, 12_000),
+    "west_stand":     ("West Stand (Gate D)",   60, 12_000),
+    "vip_section":    ("VIP Section",           45,  3_000),
+    "food_court_n":   ("Food Court North",      80,  2_500),
+    "food_court_s":   ("Food Court South",      74,  2_500),
+    "main_concourse": ("Main Concourse",        68,  5_000),
 }
 
-_ALERT_THRESHOLD = 80   # % — zones above this trigger an alert flag
-_CRITICAL_THRESHOLD = 90
+_TOTAL_ZONE_CAPACITY: int = sum(cap for _, _, cap in _ZONES.values())
+
+_ALERT_THRESHOLD: int = 80    # % — zones above this trigger an alert flag
+_CRITICAL_THRESHOLD: int = 90
 
 
 def _status(density: int) -> DensityStatus:
@@ -51,7 +55,7 @@ def _simulate_density(base: int) -> int:
     requiring a database or external state.
     """
     now = time.time()
-    # 5-minute cycle, each zone slightly offset so they don't all peak together
+    # 5-minute cycle; each zone's base offset ensures they don't all peak together
     oscillation = math.sin(now / 300 + base) * 8
     noise = random.gauss(0, 3)
     return max(0, min(100, round(base + oscillation + noise)))
@@ -59,7 +63,7 @@ def _simulate_density(base: int) -> int:
 
 def get_crowd_status() -> CrowdStatusResponse:
     """Return a snapshot of current crowd density for all stadium zones."""
-    zones: Dict[str, ZoneData] = {}
+    zones: dict[str, ZoneData] = {}
     total_fans = 0
 
     for zone_id, (display_name, base_density, capacity) in _ZONES.items():
@@ -75,8 +79,7 @@ def get_crowd_status() -> CrowdStatusResponse:
             alert=density >= _ALERT_THRESHOLD,
         )
 
-    total_capacity = sum(cap for _, _, cap in _ZONES.values())
-    overall_density = round(total_fans / total_capacity * 100) if total_capacity else 0
+    overall_density = round(total_fans / _TOTAL_ZONE_CAPACITY * 100) if _TOTAL_ZONE_CAPACITY else 0
     alert_zones = sum(1 for z in zones.values() if z.alert)
 
     return CrowdStatusResponse(
@@ -87,7 +90,7 @@ def get_crowd_status() -> CrowdStatusResponse:
     )
 
 
-def zone_data_for_advisory() -> dict[str, dict]:
+def zone_data_for_advisory() -> dict[str, dict[str, int | str]]:
     """Return a simplified zone dict suitable for the Gemini advisory prompt."""
     status_snapshot = get_crowd_status()
     return {

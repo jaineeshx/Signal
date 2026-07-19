@@ -4,37 +4,116 @@ All interactions with the Gemini API are centralised here so that:
   • Mocking in tests is trivial (patch one module).
   • The API key is configured once and never scattered throughout the codebase.
   • Retry / error handling lives in a single place.
+  • Model instances are cached at module level — one per configuration —
+    so we never pay the construction overhead on every API call.
 """
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import google.generativeai as genai
 
 from app.core.config import settings
-from app.core.personas import get_system_prompt
+from app.core.personas import _LANGUAGE_INSTRUCTIONS, get_system_prompt
 
 logger = logging.getLogger(__name__)
 
-# ── Configure Gemini on import ─────────────────────────────────────────────────
+# ── Configure Gemini SDK once on import ───────────────────────────────────────
 if settings.gemini_api_key:
     genai.configure(api_key=settings.gemini_api_key)
 
-# ── Default generation parameters ─────────────────────────────────────────────
-_GENERATION_CONFIG = {
-    "temperature": 0.7,
-    "top_p": 0.95,
-    "top_k": 40,
-    "max_output_tokens": 1_024,
-}
+# ── Shared generation configs (immutable dicts) ───────────────────────────────
+_GEN_CONFIG_CHAT = genai.types.GenerationConfig(
+    temperature=0.7,
+    top_p=0.95,
+    top_k=40,
+    max_output_tokens=1_024,
+)
+
+_GEN_CONFIG_ADVISORY = genai.types.GenerationConfig(
+    temperature=0.3,
+    top_p=0.95,
+    top_k=40,
+    max_output_tokens=1_024,
+)
+
+_GEN_CONFIG_NAV = genai.types.GenerationConfig(
+    temperature=0.2,
+    top_p=0.95,
+    top_k=40,
+    max_output_tokens=1_024,
+)
+
+_GEN_CONFIG_TRANSLATE = genai.types.GenerationConfig(
+    temperature=0.1,
+    top_p=0.95,
+    top_k=40,
+    max_output_tokens=1_024,
+)
 
 _SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH",       "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH",        "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",  "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT",  "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
 ]
+
+# ── Cached model instances ─────────────────────────────────────────────────────
+# Advisory and translation use a fixed system prompt, so we can cache them once.
+# The chat model varies by persona/language, so we cache per (persona, language) pair.
+_advisory_model: genai.GenerativeModel | None = None
+_nav_base_model: genai.GenerativeModel | None = None
+_translate_model: genai.GenerativeModel | None = None
+_chat_model_cache: dict[str, genai.GenerativeModel] = {}
+
+
+def _get_advisory_model() -> genai.GenerativeModel:
+    """Return (and cache) the shared crowd-advisory model instance."""
+    global _advisory_model  # noqa: PLW0603
+    if _advisory_model is None:
+        _advisory_model = genai.GenerativeModel(
+            model_name=settings.gemini_model,
+            generation_config=_GEN_CONFIG_ADVISORY,
+            safety_settings=_SAFETY_SETTINGS,
+        )
+    return _advisory_model
+
+
+def _get_translate_model() -> genai.GenerativeModel:
+    """Return (and cache) the shared translation model instance."""
+    global _translate_model  # noqa: PLW0603
+    if _translate_model is None:
+        _translate_model = genai.GenerativeModel(
+            model_name=settings.gemini_model,
+            generation_config=_GEN_CONFIG_TRANSLATE,
+            safety_settings=_SAFETY_SETTINGS,
+        )
+    return _translate_model
+
+
+def _get_chat_model(persona: str, language: str) -> genai.GenerativeModel:
+    """Return a cached chat model for the given persona + language combination."""
+    cache_key = f"{persona}:{language}"
+    if cache_key not in _chat_model_cache:
+        system_prompt = get_system_prompt(persona, language)
+        _chat_model_cache[cache_key] = genai.GenerativeModel(
+            model_name=settings.gemini_model,
+            generation_config=_GEN_CONFIG_CHAT,
+            safety_settings=_SAFETY_SETTINGS,
+            system_instruction=system_prompt,
+        )
+    return _chat_model_cache[cache_key]
+
+
+def _get_nav_model(system_instruction: str) -> genai.GenerativeModel:
+    """Return a navigation model; each route may vary in system prompt, so no global cache."""
+    return genai.GenerativeModel(
+        model_name=settings.gemini_model,
+        generation_config=_GEN_CONFIG_NAV,
+        safety_settings=_SAFETY_SETTINGS,
+        system_instruction=system_instruction,
+    )
+
 
 # ── Mock responses (used when MOCK_MODE=true or no API key) ───────────────────
 _MOCK_RESPONSES: dict[str, str] = {
@@ -72,7 +151,10 @@ _MOCK_DIRECTIONS = (
     "Estimated walk time: 3–4 minutes."
 )
 
-_MOCK_TRANSLATION = "Translation unavailable in mock mode — connect a Gemini API key to enable multilingual translation."
+_MOCK_TRANSLATION = (
+    "Translation unavailable in mock mode — "
+    "connect a Gemini API key to enable multilingual translation."
+)
 
 
 # ── Core AI functions ──────────────────────────────────────────────────────────
@@ -81,7 +163,7 @@ async def generate_response(
     message: str,
     persona: str = "fan",
     language: str = "en",
-    context: Optional[list[dict[str, str]]] = None,
+    context: list[dict[str, str]] | None = None,
 ) -> str:
     """Generate a persona-aware Gemini response.
 
@@ -103,14 +185,7 @@ async def generate_response(
         return _MOCK_RESPONSES.get(persona, _MOCK_RESPONSES["fan"])
 
     try:
-        system_prompt = get_system_prompt(persona, language)
-        model = genai.GenerativeModel(
-            model_name=settings.gemini_model,
-            generation_config=_GENERATION_CONFIG,
-            safety_settings=_SAFETY_SETTINGS,
-            system_instruction=system_prompt,
-        )
-
+        model = _get_chat_model(persona, language)
         history = [
             {"role": turn["role"], "parts": [turn["content"]]}
             for turn in (context or [])
@@ -152,10 +227,7 @@ async def generate_crowd_advisory(zone_data: dict[str, dict]) -> str:
     )
 
     try:
-        model = genai.GenerativeModel(
-            model_name=settings.gemini_model,
-            generation_config={**_GENERATION_CONFIG, "temperature": 0.3},
-        )
+        model = _get_advisory_model()
         response = await model.generate_content_async(prompt)
         return response.text
 
@@ -192,7 +264,6 @@ async def generate_navigation_directions(
         else ""
     )
 
-    from app.core.personas import _LANGUAGE_INSTRUCTIONS  # noqa: PLC0415
     lang_note = _LANGUAGE_INSTRUCTIONS.get(language, _LANGUAGE_INSTRUCTIONS["en"])
 
     system = (
@@ -217,11 +288,7 @@ async def generate_navigation_directions(
     )
 
     try:
-        model = genai.GenerativeModel(
-            model_name=settings.gemini_model,
-            generation_config={**_GENERATION_CONFIG, "temperature": 0.2},
-            system_instruction=system,
-        )
+        model = _get_nav_model(system)
         response = await model.generate_content_async(prompt)
         return response.text
 
@@ -245,10 +312,7 @@ async def translate_text(text: str, target_language: str) -> str:
     )
 
     try:
-        model = genai.GenerativeModel(
-            model_name=settings.gemini_model,
-            generation_config={**_GENERATION_CONFIG, "temperature": 0.1},
-        )
+        model = _get_translate_model()
         response = await model.generate_content_async(prompt)
         return response.text
 

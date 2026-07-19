@@ -1,8 +1,6 @@
 """Application configuration — loaded from environment variables via pydantic-settings."""
 from __future__ import annotations
 
-from typing import List, Optional
-
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,8 +20,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # ── Gemini AI ──────────────────────────────────────────────────────────
-    gemini_api_key: Optional[str] = Field(
+    # ── Gemini AI ──────────────────────────────────────────────────────────────
+    gemini_api_key: str | None = Field(
         default=None,
         description="Google Gemini API key (from Google AI Studio)",
     )
@@ -36,18 +34,18 @@ class Settings(BaseSettings):
         description="When True, skip Gemini calls and return hardcoded mock responses",
     )
 
-    # ── Application ────────────────────────────────────────────────────────
+    # ── Application ────────────────────────────────────────────────────────────
     app_name: str = Field(default="SIGNAL", description="Application display name")
     app_version: str = Field(default="1.0.0", description="Semantic version string")
     debug: bool = Field(default=False, description="Enable verbose debug logging")
 
-    # ── CORS ───────────────────────────────────────────────────────────────
-    cors_origins: List[str] = Field(
+    # ── CORS ───────────────────────────────────────────────────────────────────
+    cors_origins: list[str] = Field(
         default=["http://localhost:8000", "http://127.0.0.1:8000"],
         description="Allowed CORS origins for the API",
     )
 
-    # ── Stadium ────────────────────────────────────────────────────────────
+    # ── Stadium ────────────────────────────────────────────────────────────────
     stadium_name: str = Field(
         default="FIFA World Cup 2026 Venue",
         description="Human-readable stadium name",

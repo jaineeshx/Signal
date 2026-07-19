@@ -1,8 +1,6 @@
 """Pydantic request/response models for the /api/chat endpoint."""
 from __future__ import annotations
 
-from typing import List, Optional
-
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -38,7 +36,7 @@ class ChatRequest(BaseModel):
         default="en",
         description="ISO 639-1 language code for the AI response",
     )
-    context: Optional[List[ConversationTurn]] = Field(
+    context: list[ConversationTurn] | None = Field(
         default=None,
         description="Recent conversation history for multi-turn chat",
     )

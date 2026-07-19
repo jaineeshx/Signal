@@ -6,10 +6,10 @@ static frontend, and sets up startup/shutdown logging.
 from __future__ import annotations
 
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api import chat, crowd, health, navigation
@@ -50,16 +50,17 @@ app.include_router(crowd.router,      prefix=API_PREFIX)
 app.include_router(navigation.router, prefix=API_PREFIX)
 
 # ── Static frontend ────────────────────────────────────────────────────────────
-import os  # noqa: E402
-
-_FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
-_FRONTEND_DIR = os.path.normpath(_FRONTEND_DIR)
+_FRONTEND_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
+)
 
 if os.path.isdir(_FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")
     logger.info("Frontend mounted from: %s", _FRONTEND_DIR)
 else:
-    logger.warning("Frontend directory not found at '%s' — UI will not be served.", _FRONTEND_DIR)
+    logger.warning(
+        "Frontend directory not found at '%s' — UI will not be served.", _FRONTEND_DIR
+    )
 
 
 # ── Lifecycle events ───────────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ else:
 async def on_startup() -> None:
     gemini_status = "LIVE" if settings.gemini_available else "MOCK"
     logger.info(
-        "🏟️  %s v%s started | Gemini: %s | Model: %s",
+        "SIGNAL %s v%s started | Gemini: %s | Model: %s",
         settings.app_name,
         settings.app_version,
         gemini_status,

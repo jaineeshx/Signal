@@ -7,16 +7,16 @@ ensuring requests stay within sensible bounds.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from app.core.personas import VALID_LANGUAGES, VALID_PERSONAS
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-MAX_MESSAGE_LENGTH = 1_000  # characters
-MAX_LOCATION_LENGTH = 200   # characters
+MAX_MESSAGE_LENGTH: int = 1_000  # characters
+MAX_LOCATION_LENGTH: int = 200   # characters
+MAX_HISTORY_TURNS: int = 20      # conversation turns retained
 
 # Patterns that look like prompt-injection attempts
-_INJECTION_PATTERNS = re.compile(
+_INJECTION_PATTERNS: re.Pattern[str] = re.compile(
     r"(ignore\s+(all\s+)?previous\s+instructions?|"
     r"you\s+are\s+now|system\s+prompt|"
     r"disregard\s+your\s+instructions?|"
@@ -36,7 +36,8 @@ def validate_message(message: str) -> str:
     """Validate and sanitise a user chat message.
 
     Raises:
-        ValueError: if the message is empty or exceeds the length limit.
+        ValueError: if the message is empty, exceeds the length limit,
+                    or contains a prompt-injection pattern.
     """
     cleaned = sanitise_text(message)
     if not cleaned:
@@ -84,21 +85,22 @@ def validate_location(location: str) -> str:
     return cleaned
 
 
-def validate_chat_context(context: Optional[list]) -> list:
+def validate_chat_context(context: list | None) -> list[dict[str, str]]:
     """Validate and normalise the optional conversation history list.
 
     Ensures each entry has ``role`` and ``content`` string fields and that
     the list is not excessively long (to avoid inflating token usage).
+    Silently discards malformed turns rather than raising, to ensure
+    partial history is never a hard failure.
     """
     if context is None:
         return []
 
-    MAX_HISTORY = 20
-    if len(context) > MAX_HISTORY:
-        # Keep only the most recent turns
-        context = context[-MAX_HISTORY:]
+    # Keep only the most recent turns to control token usage
+    if len(context) > MAX_HISTORY_TURNS:
+        context = context[-MAX_HISTORY_TURNS:]
 
-    validated = []
+    validated: list[dict[str, str]] = []
     for turn in context:
         if not isinstance(turn, dict):
             continue
