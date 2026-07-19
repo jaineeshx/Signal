@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
+from pytest_mock import MockerFixture
 
 
 class TestChatHappyPath:
@@ -26,6 +27,24 @@ class TestChatHappyPath:
         assert data["language"] == "en"
         assert isinstance(data["reply"], str)
         assert len(data["reply"]) > 0
+
+    def test_internal_server_error_handled(self, client: TestClient, mocker: MockerFixture) -> None:
+        """Ensure that exceptions raised in the AI service are caught and return a 502 error."""
+        mocker.patch(
+            "app.api.chat.generate_response",
+            side_effect=RuntimeError("AI service offline")
+        )
+        response = client.post(
+            "/api/chat",
+            json={
+                "message": "Hello",
+                "persona": "fan",
+                "language": "en",
+            },
+        )
+        assert response.status_code == 502
+        data = response.json()
+        assert "temporarily unavailable" in data["detail"]
 
     @pytest.mark.parametrize("language", ["en", "es", "fr", "ar", "pt", "de", "ja", "ko"])
     def test_all_languages_accepted(self, client: TestClient, mock_gemini_chat, language: str):

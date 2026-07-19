@@ -38,7 +38,7 @@ async def navigate(request: NavigationRequest) -> NavigationResponse:
         to_loc    = validate_location(request.to_location)
         language  = validate_language(request.language)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     if from_loc.lower() == to_loc.lower():
         raise HTTPException(
@@ -63,7 +63,7 @@ async def navigate(request: NavigationRequest) -> NavigationResponse:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Navigation AI service temporarily unavailable.",
-        )
+        ) from exc
 
     return NavigationResponse(
         from_location=from_loc,
@@ -84,15 +84,15 @@ async def translate_endpoint(request: TranslationRequest) -> TranslationResponse
     try:
         language = validate_language(request.target_language)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     try:
         translated = await translate(request.text, language)
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=str(exc),
-        )
+            detail="Translation service unavailable",
+        ) from exc
 
     return TranslationResponse(
         original_text=request.text,

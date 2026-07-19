@@ -98,6 +98,28 @@ class TestNavigationEndpoint:
         )
         assert response.status_code == 422
 
+    def test_same_location_returns_422(self, client: TestClient):
+        """Cannot navigate to the exact same location."""
+        response = client.post(
+            "/api/navigate",
+            json={"from_location": "Gate A", "to_location": "Gate A"},
+        )
+        assert response.status_code == 422
+
+    def test_navigation_internal_server_error(self, client: TestClient, mocker: MockerFixture) -> None:
+        """Ensure that exceptions raised in the AI service are caught and return a 502 error."""
+        mocker.patch(
+            "app.api.navigation.generate_navigation_directions",
+            side_effect=RuntimeError("AI service offline")
+        )
+        response = client.post(
+            "/api/navigate",
+            json={"from_location": "Gate A", "to_location": "Gate B"},
+        )
+        assert response.status_code == 502
+        data = response.json()
+        assert "temporarily unavailable" in data["detail"]
+
     def test_invalid_language_returns_422(self, client: TestClient):
         """Unknown language code must be rejected."""
         response = client.post(
@@ -216,13 +238,27 @@ class TestTranslationEndpoint:
         )
         assert response.status_code == 422
 
-    def test_whitespace_only_text_returns_422(self, client: TestClient):
-        """Whitespace-only text must be rejected."""
+    def test_translation_whitespace_only_text_returns_422(self, client: TestClient) -> None:
         response = client.post(
             "/api/translate",
-            json={"text": "    ", "target_language": "es"},
+            json={"text": "   \n\t  ", "target_language": "fr"},
         )
         assert response.status_code == 422
+
+
+    def test_translation_internal_server_error(self, client: TestClient, mocker: MockerFixture) -> None:
+        """Ensure that exceptions raised in the AI service are caught and return a 502 error."""
+        mocker.patch(
+            "app.api.navigation.translate",
+            side_effect=RuntimeError("AI service offline")
+        )
+        response = client.post(
+            "/api/translate",
+            json={"text": "Hello", "target_language": "fr"},
+        )
+        assert response.status_code == 502
+        data = response.json()
+        assert "unavailable" in data["detail"]
 
 
 class TestHealthEndpoint:

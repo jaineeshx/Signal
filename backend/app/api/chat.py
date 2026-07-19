@@ -44,7 +44,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
             [t.model_dump() for t in request.context] if request.context else None
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        logger.exception("Pydantic validation error: %s", exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     logger.info("Chat request | persona=%s lang=%s chars=%d", persona, language, len(message))
 
@@ -57,11 +58,11 @@ async def chat(request: ChatRequest) -> ChatResponse:
             context=context,
         )
     except RuntimeError as exc:
-        logger.error("Gemini error in /api/chat: %s", exc)
+        logger.exception("Chat error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="The AI service is temporarily unavailable. Please try again.",
-        )
+        ) from exc
 
     return ChatResponse(
         reply=reply,

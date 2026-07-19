@@ -148,6 +148,17 @@ class TestAutoAdvisoryEndpoint:
         """Auto-advisory endpoint must return HTTP 200."""
         assert client.get("/api/crowd/advisory").status_code == 200
 
+    def test_crowd_advisory_internal_server_error(self, client: TestClient, mocker: MockerFixture) -> None:
+        """Ensure that exceptions raised in the AI service are caught and return a 502 error."""
+        mocker.patch(
+            "app.api.crowd.generate_crowd_advisory",
+            side_effect=RuntimeError("AI service offline")
+        )
+        response = client.get("/api/crowd/advisory")
+        assert response.status_code == 502
+        data = response.json()
+        assert "temporarily unavailable" in data["detail"]
+
     def test_advisory_is_non_empty(self, client: TestClient, mock_gemini_advisory):
         """Advisory string must not be empty."""
         data = client.get("/api/crowd/advisory").json()

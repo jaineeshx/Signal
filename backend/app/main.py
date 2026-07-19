@@ -12,19 +12,22 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 from app.api import chat, crowd, health, navigation
 from app.core.config import settings
 from app.utils.logger import get_logger
 
 # ── Logging ────────────────────────────────────────────────────────────────────
-log_level = logging.DEBUG if settings.debug else logging.INFO
-logger = get_logger(__name__, level=log_level)
+LOG_LEVEL = logging.DEBUG if settings.debug else logging.INFO
+logger = get_logger(__name__, level=LOG_LEVEL)
 
 # ── Lifecycle events ───────────────────────────────────────────────────────────
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
+    """FastAPI application lifespan manager for startup and shutdown events."""
     gemini_status = "LIVE" if settings.gemini_available else "MOCK"
     logger.info(
         "SIGNAL %s v%s started | Gemini: %s | Model: %s",
@@ -57,6 +60,19 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# ── Security Headers ───────────────────────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to inject standard HTTP security headers for enhanced protection."""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # ── API routers ────────────────────────────────────────────────────────────────
 API_PREFIX = "/api"

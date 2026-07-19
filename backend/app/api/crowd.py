@@ -46,11 +46,11 @@ async def crowd_alert(request: CrowdAlertRequest) -> CrowdAlertResponse:
     try:
         advisory = await generate_crowd_advisory(zone_data)
     except RuntimeError as exc:
-        logger.error("Gemini crowd advisory error: %s", exc)
+        logger.exception("Failed to generate crowd advisory: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="AI advisory service temporarily unavailable.",
-        )
+        ) from exc
 
     return CrowdAlertResponse(
         advisory=advisory,
