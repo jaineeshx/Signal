@@ -70,10 +70,10 @@ async def auto_advisory() -> CrowdAlertResponse:
     try:
         advisory = await generate_crowd_advisory(zone_data)
     except RuntimeError as exc:
-        logger.error("Auto-advisory error: %s", exc)
+        logger.exception("Auto-advisory error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="AI advisory service temporarily unavailable.",
-        )
+        ) from exc
 
     return CrowdAlertResponse(advisory=advisory, mock=not settings.gemini_available)

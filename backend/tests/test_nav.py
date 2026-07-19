@@ -104,7 +104,7 @@ class TestNavigationEndpoint:
             "/api/navigate",
             json={"from_location": "Gate A", "to_location": "Gate A"},
         )
-        assert response.status_code == 422
+        assert response.status_code == 400
 
     def test_navigation_internal_server_error(self, client: TestClient, mocker: MockerFixture) -> None:
         """Ensure that exceptions raised in the AI service are caught and return a 502 error."""

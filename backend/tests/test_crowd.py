@@ -159,6 +159,17 @@ class TestAutoAdvisoryEndpoint:
         data = response.json()
         assert "temporarily unavailable" in data["detail"]
 
+    def test_crowd_alert_internal_server_error(self, client: TestClient, mocker: MockerFixture) -> None:
+        """Ensure that exceptions raised in the AI service are caught and return a 502 error for alert endpoint."""
+        mocker.patch(
+            "app.api.crowd.generate_crowd_advisory",
+            side_effect=RuntimeError("AI service offline")
+        )
+        response = client.post("/api/crowd/alert", json={"zone_data": {"Zone 1": {"density": 50, "status": "nominal"}}})
+        assert response.status_code == 502
+        data = response.json()
+        assert "temporarily unavailable" in data["detail"]
+
     def test_advisory_is_non_empty(self, client: TestClient, mock_gemini_advisory):
         """Advisory string must not be empty."""
         data = client.get("/api/crowd/advisory").json()
